@@ -20,6 +20,8 @@
 
 package org.pentaho.platform.plugin.services.cache;
 
+//removed in the change from Hibernate 3 to Hibernate 4
+//possibly use net.sf.ehcache.config.CacheConfiguration.PoolUsage.Cache
 import org.hibernate.cache.Cache;
 import org.hibernate.cache.CacheException;
 import org.pentaho.platform.api.cache.ILastModifiedCacheItem;

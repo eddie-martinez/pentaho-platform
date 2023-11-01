@@ -23,8 +23,10 @@ package org.pentaho.platform.plugin.services.cache;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.dom4j.Element;
+//removed in the change from Hibernate 3 to Hibernate 4
 import org.hibernate.cache.Cache;
 import org.hibernate.cache.CacheException;
+//removed in the change from Hibernate 3 to Hibernate 4
 import org.hibernate.cache.CacheProvider;
 import org.pentaho.platform.api.cache.ICacheExpirationRegistry;
 import org.pentaho.platform.api.engine.ICacheManager;

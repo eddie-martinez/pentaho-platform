@@ -21,9 +21,14 @@
 package org.pentaho.platform.repository.hibernate;
 
 import org.hibernate.HibernateException;
-import org.hibernate.event.LoadEvent;
-import org.hibernate.event.LoadEventListener;
-import org.hibernate.event.def.DefaultLoadEventListener;
+//These were moved from:
+//import org.hibernate.event.LoadEvent;
+//import org.hibernate.event.LoadEventListener;
+//import org.hibernate.event.def.DefaultLoadEventListener;
+//To:
+import org.hibernate.event.spi.LoadEvent;
+import org.hibernate.event.spi.LoadEventListener;
+import org.hibernate.event.internal.DefaultLoadEventListener;
 import org.pentaho.platform.api.repository.IRuntimeElement;
 
 public class HibernateLoadEventListener extends DefaultLoadEventListener {

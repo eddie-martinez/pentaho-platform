@@ -129,6 +129,7 @@ public class HibernateUtil implements IPentahoSystemEntryPoint, IPentahoSystemEx
     }
 
     try {
+      //Configuration (org.hibernate.cfg) class removed setEntityResolver() and setListener()
       HibernateUtil.configuration = new Configuration();
       HibernateUtil.configuration.setEntityResolver( new PentahoEntityResolver() );
       HibernateUtil.configuration.setListener( "load", new HibernateLoadEventListener() ); //$NON-NLS-1$
@@ -370,6 +371,8 @@ public class HibernateUtil implements IPentahoSystemEntryPoint, IPentahoSystemEx
             HibernateUtil.log
                 .debug( Messages.getInstance().getString( "HIBUTIL.DEBUG_USING_INTERCEPTOR" ) + HibernateUtil.getInterceptor().getClass() ); //$NON-NLS-1$
           }
+          //There is no constructor in SessionFactory accepting any arguments
+          //SessionFactory class removed openSession constructor passing (HibernateUtil.getInterceptor())
           s = HibernateUtil.getSessionFactory().openSession( HibernateUtil.getInterceptor() );
         } else {
           s = HibernateUtil.getSessionFactory().openSession();
@@ -442,6 +445,8 @@ public class HibernateUtil implements IPentahoSystemEntryPoint, IPentahoSystemEx
     // if (needed.booleanValue()){
     Transaction tx = (Transaction) HibernateUtil.threadTransaction.get();
     try {
+      //Transaction class removed wasCommitted() and wasRolledBack(), possibly we can use getStatus().isOneOf( COMMITTED )
+      // and getStatus().isOneOf( ROLLED_BACK)
       if ( ( tx != null ) && !tx.wasCommitted() && !tx.wasRolledBack() ) {
         if ( HibernateUtil.debug ) {
           HibernateUtil.log.debug( Messages.getInstance().getString( "HIBUTIL.DEBUG_COMMIT_TRANS" ) ); //$NON-NLS-1$
@@ -475,6 +480,8 @@ public class HibernateUtil implements IPentahoSystemEntryPoint, IPentahoSystemEx
     Transaction tx = (Transaction) HibernateUtil.threadTransaction.get();
     try {
       HibernateUtil.threadTransaction.set( null );
+      //Transaction class removed wasCommitted() and wasRolledBack(), possibly we can use getStatus().isOneOf( COMMITTED )
+      // and getStatus().isOneOf( ROLLED_BACK)
       if ( ( tx != null ) && !tx.wasCommitted() && !tx.wasRolledBack() ) {
         if ( HibernateUtil.debug ) {
           HibernateUtil.log.debug( Messages.getInstance().getString( "HIBUTIL.DEBUG_ROLLBACK" ) ); //$NON-NLS-1$

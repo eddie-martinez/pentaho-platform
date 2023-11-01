@@ -40,6 +40,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 
+// UserType nullSafeGet() and nullSafeSet() different signature number of arguments we would have to implement the new methods
+// nullSafeGet() and nullSafeSet()
 public class BlobtoByteArrayUserType implements UserType {
   private static final Log log = LogFactory.getLog( BlobtoByteArrayUserType.class );
 
