@@ -31,8 +31,12 @@ import org.apache.commons.logging.LogFactory;
 import org.hibernate.HibernateException;
 import org.hibernate.type.SerializationException;
 import org.hibernate.usertype.UserType;
-import org.hibernate.util.EqualsHelper;
-import org.hibernate.util.SerializationHelper;
+//EqualsHelper removed after hibernate-core-5.3.1.Final.jar
+//import org.hibernate.util.EqualsHelper;
+//This SerializationHelper was moved from:
+//import org.hibernate.util.SerializationHelper;
+//To:
+import org.hibernate.internal.util.SerializationHelper;
 import org.pentaho.platform.engine.core.system.PentahoSystem;
 import org.pentaho.platform.repository.messages.Messages;
 
@@ -43,6 +47,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 
+// UserType nullSafeGet() and nullSafeSet() different signature number of arguments we would have to implement the new methods
+// nullSafeGet() and nullSafeSet()
 public class BlobUserType implements UserType {
   private static final Log log = LogFactory.getLog( BlobUserType.class );
 
@@ -74,6 +80,7 @@ public class BlobUserType implements UserType {
    * @see org.hibernate.usertype.UserType#equals(java.lang.Object, java.lang.Object)
    */
   public boolean equals( final Object arg0, final Object arg1 ) throws HibernateException {
+    //EqualsHelper removed after hibernate-core-5.3.1.Final.jar maybe just return equals( arg0, arg1 );
     return EqualsHelper.equals( arg0, arg1 );
   }
 

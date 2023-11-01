@@ -25,7 +25,8 @@ import org.apache.commons.logging.LogFactory;
 import org.hibernate.Hibernate;
 import org.hibernate.HibernateException;
 import org.hibernate.usertype.UserType;
-import org.hibernate.util.EqualsHelper;
+//EqualsHelper removed after hibernate-core-5.3.1.Final.jar
+//import org.hibernate.util.EqualsHelper;
 import org.pentaho.platform.engine.core.system.PentahoSystem;
 import org.pentaho.platform.repository.messages.Messages;
 
@@ -35,6 +36,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 
+// UserType nullSafeGet() and nullSafeSet() different signature number of arguments we would have to implement the new methods
+// nullSafeGet() and nullSafeSet()
 public class EmptyStringUserType implements UserType {
   private static final Log log = LogFactory.getLog( EmptyStringUserType.class );
 
@@ -69,6 +72,8 @@ public class EmptyStringUserType implements UserType {
    * @see org.hibernate.usertype.UserType#equals(java.lang.Object, java.lang.Object)
    */
   public boolean equals( final Object arg0, final Object arg1 ) throws HibernateException {
+    // EqualsHelper removed after hibernate-core-5.3.1.Final.jar
+    // maybe just return equals( arg0, arg1 );
     return EqualsHelper.equals( arg0, arg1 );
   }
 
@@ -91,6 +96,10 @@ public class EmptyStringUserType implements UserType {
     if ( EmptyStringUserType.debug ) {
       EmptyStringUserType.log.debug( Messages.getInstance().getString( "EMPTYSTRTYPE.DEBUG_NULL_SAFE_GET" ) ); //$NON-NLS-1$
     }
+    //Hibernate class removed all the static Fields (BOOLEAN, TRUE_FALSE, STRING etc...) from 5.4.24.Final
+    //maybe replace Hibernate.STRING.nullSafeGet
+    //with:
+    //StandardBasicTypes.STRING.nullSafeGet
     String colValue = (String) Hibernate.STRING.nullSafeGet( arg0, arg1[0] );
     // _PENTAHOEMPTY_ shouldn't appear in the wild. So, check the string in
     // the DB for this flag,
@@ -109,6 +118,10 @@ public class EmptyStringUserType implements UserType {
     if ( EmptyStringUserType.debug ) {
       EmptyStringUserType.log.debug( Messages.getInstance().getString( "EMPTYSTRTYPE.DEBUG_NULL_SAFE_SET" ) ); //$NON-NLS-1$
     }
+    //Hibernate class removed all the static Fields (BOOLEAN, TRUE_FALSE, STRING etc...) from 5.4.24.Final
+    //maybe replace Hibernate.STRING.nullSafeSet
+    // with:
+    //StandardBasicTypes.STRING.nullSafeSet(
     Hibernate.STRING.nullSafeSet( arg0, ( arg1 != null ) ? ( ( ( (String) arg1 ).length() > 0 ) ? arg1
         : EmptyStringUserType.PENTAHOEMPTY ) : arg1, arg2, null );
   }
