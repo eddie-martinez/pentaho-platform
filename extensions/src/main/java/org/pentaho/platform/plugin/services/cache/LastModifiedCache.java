@@ -22,10 +22,12 @@ package org.pentaho.platform.plugin.services.cache;
 
 //removed in the change from Hibernate 3 to Hibernate 4
 //possibly use net.sf.ehcache.config.CacheConfiguration.PoolUsage.Cache
-import org.hibernate.cache.Cache;
+import org.hibernate.Cache;
+import org.hibernate.SessionFactory;
 import org.hibernate.cache.CacheException;
 import org.pentaho.platform.api.cache.ILastModifiedCacheItem;
 
+import java.io.Serializable;
 import java.util.Date;
 import java.util.Map;
 
@@ -51,6 +53,10 @@ public class LastModifiedCache implements ILastModifiedCacheItem, Cache {
     return lastModified;
   }
 
+  @Override public String getCacheKey() {
+    return null;
+  }
+
   public void setLastModified( long lastModified ) {
     this.lastModified = lastModified;
   }
@@ -59,97 +65,193 @@ public class LastModifiedCache implements ILastModifiedCacheItem, Cache {
     this.lastModified = new Date().getTime();
   }
 
-  @Override
-  public String getCacheKey() {
-    return cache.getRegionName();
+//  @Override
+//  public String getCacheKey() {
+//    return cache.getRegionName();
+//  }
+//
+//  @Override
+//  public Object read( Object o ) throws CacheException {
+//    return cache.read( o );
+//  }
+//
+//  @Override
+//  public Object get( Object o ) throws CacheException {
+//    return cache.get( o );
+//  }
+//
+//  @Override
+//  public void put( Object o, Object o1 ) throws CacheException {
+//    cache.put( o, o1 );
+//    setLastModified();
+//  }
+//
+//  @Override
+//  public void update( Object o, Object o1 ) throws CacheException {
+//    cache.update( o, o1 );
+//    setLastModified();
+//  }
+//
+//  @Override
+//  public void remove( Object o ) throws CacheException {
+//    cache.remove( o );
+//    setLastModified();
+//  }
+//
+//  @Override
+//  public void clear() throws CacheException {
+//    cache.clear();
+//    setLastModified();
+//  }
+//
+//  @Override
+//  public void destroy() throws CacheException {
+//    cache.destroy();
+//    setLastModified();
+//  }
+//
+//  @Override
+//  public void lock( Object o ) throws CacheException {
+//    cache.lock( o );
+//  }
+//
+//  @Override
+//  public void unlock( Object o ) throws CacheException {
+//    cache.unlock( o );
+//  }
+//
+//  @Override
+//  public long nextTimestamp() {
+//    return cache.nextTimestamp();
+//  }
+//
+//  @Override
+//  public int getTimeout() {
+//    return cache.getTimeout();
+//  }
+//
+//  @Override
+//  public String getRegionName() {
+//    return cache.getRegionName();
+//  }
+//
+//  @Override
+//  public long getSizeInMemory() {
+//    return cache.getSizeInMemory();
+//  }
+//
+//  @Override
+//  public long getElementCountInMemory() {
+//    return cache.getElementCountInMemory();
+//  }
+//
+//  @Override
+//  public long getElementCountOnDisk() {
+//    return cache.getElementCountOnDisk();
+//  }
+//
+//  @Override
+//  public Map toMap() {
+//    try {
+//      return cache.toMap();
+//    } catch ( Exception e ) {
+//      return null;
+//    }
+//  }
+
+  @Override public SessionFactory getSessionFactory() {
+    return null;
   }
 
-  @Override
-  public Object read( Object o ) throws CacheException {
-    return cache.read( o );
+  @Override public boolean containsEntity( Class entityClass, Serializable identifier ) {
+    return false;
   }
 
-  @Override
-  public Object get( Object o ) throws CacheException {
-    return cache.get( o );
+  @Override public boolean containsEntity( String entityName, Serializable identifier ) {
+    return false;
   }
 
-  @Override
-  public void put( Object o, Object o1 ) throws CacheException {
-    cache.put( o, o1 );
-    setLastModified();
+  @Override public void evictEntityData( Class entityClass, Serializable identifier ) {
+
   }
 
-  @Override
-  public void update( Object o, Object o1 ) throws CacheException {
-    cache.update( o, o1 );
-    setLastModified();
+  @Override public void evictEntityData( String entityName, Serializable identifier ) {
+
   }
 
-  @Override
-  public void remove( Object o ) throws CacheException {
-    cache.remove( o );
-    setLastModified();
+  @Override public void evictEntityData( Class entityClass ) {
+
   }
 
-  @Override
-  public void clear() throws CacheException {
-    cache.clear();
-    setLastModified();
+  @Override public void evictEntityData( String entityName ) {
+
   }
 
-  @Override
-  public void destroy() throws CacheException {
-    cache.destroy();
-    setLastModified();
+  @Override public void evictEntityData() {
+
   }
 
-  @Override
-  public void lock( Object o ) throws CacheException {
-    cache.lock( o );
+  @Override public void evictNaturalIdData( Class entityClass ) {
+
   }
 
-  @Override
-  public void unlock( Object o ) throws CacheException {
-    cache.unlock( o );
+  @Override public void evictNaturalIdData( String entityName ) {
+
   }
 
-  @Override
-  public long nextTimestamp() {
-    return cache.nextTimestamp();
+  @Override public void evictNaturalIdData() {
+
   }
 
-  @Override
-  public int getTimeout() {
-    return cache.getTimeout();
+  @Override public boolean containsCollection( String role, Serializable ownerIdentifier ) {
+    return false;
   }
 
-  @Override
-  public String getRegionName() {
-    return cache.getRegionName();
+  @Override public void evictCollectionData( String role, Serializable ownerIdentifier ) {
+
   }
 
-  @Override
-  public long getSizeInMemory() {
-    return cache.getSizeInMemory();
+  @Override public void evictCollectionData( String role ) {
+
   }
 
-  @Override
-  public long getElementCountInMemory() {
-    return cache.getElementCountInMemory();
+  @Override public void evictCollectionData() {
+
   }
 
-  @Override
-  public long getElementCountOnDisk() {
-    return cache.getElementCountOnDisk();
+  @Override public boolean containsQuery( String regionName ) {
+    return false;
   }
 
-  @Override
-  public Map toMap() {
-    try {
-      return cache.toMap();
-    } catch ( Exception e ) {
-      return null;
-    }
+  @Override public void evictDefaultQueryRegion() {
+
+  }
+
+  @Override public void evictQueryRegion( String regionName ) {
+
+  }
+
+  @Override public void evictQueryRegions() {
+
+  }
+
+  @Override public void evictRegion( String regionName ) {
+
+  }
+
+  @Override public boolean contains( Class aClass, Object o ) {
+    return false;
+  }
+
+  @Override public void evict( Class aClass, Object o ) {
+
+  }
+
+  @Override public void evict( Class aClass ) {
+
+  }
+
+  @Override public <T> T unwrap( Class<T> aClass ) {
+    return null;
   }
 }
