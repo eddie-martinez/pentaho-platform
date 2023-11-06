@@ -29,6 +29,7 @@ package org.pentaho.platform.repository.hibernate.usertypes;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hibernate.HibernateException;
+import org.hibernate.engine.spi.SharedSessionContractImplementor;
 import org.hibernate.type.SerializationException;
 import org.hibernate.usertype.UserType;
 //EqualsHelper removed after hibernate-core-5.3.1.Final.jar
@@ -81,7 +82,8 @@ public class BlobUserType implements UserType {
    */
   public boolean equals( final Object arg0, final Object arg1 ) throws HibernateException {
     //EqualsHelper removed after hibernate-core-5.3.1.Final.jar maybe just return equals( arg0, arg1 );
-    return EqualsHelper.equals( arg0, arg1 );
+    //return EqualsHelper.equals( arg0, arg1 );
+    return equals( arg0, arg1 );
   }
 
   /*
@@ -91,6 +93,18 @@ public class BlobUserType implements UserType {
    */
   public int hashCode( final Object arg0 ) throws HibernateException {
     return arg0.hashCode();
+  }
+
+  @Override
+  public Object nullSafeGet( ResultSet rs, String[] names, SharedSessionContractImplementor session, Object owner )
+    throws HibernateException, SQLException {
+    return null;
+  }
+
+  @Override
+  public void nullSafeSet( PreparedStatement st, Object value, int index, SharedSessionContractImplementor session )
+    throws HibernateException, SQLException {
+
   }
 
   /*

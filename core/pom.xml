@@ -370,7 +370,8 @@
       </exclusions>
     </dependency>
     <dependency>
-      <groupId>org.hibernate</groupId>
+<!--      <groupId>org.hibernate</groupId>-->
+      <groupId>org.hibernate.common</groupId>
       <artifactId>hibernate-commons-annotations</artifactId>
       <version>${hibernate-commons-annotations.version}</version>
       <scope>compile</scope>

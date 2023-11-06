@@ -24,10 +24,11 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.dom4j.Element;
 //removed in the change from Hibernate 3 to Hibernate 4
-import org.hibernate.cache.Cache;
+//import org.hibernate.cache.Cache;
+import org.hibernate.Cache;
 import org.hibernate.cache.CacheException;
 //removed in the change from Hibernate 3 to Hibernate 4
-import org.hibernate.cache.CacheProvider;
+//import org.hibernate.cache.CacheProvider;
 import org.pentaho.platform.api.cache.ICacheExpirationRegistry;
 import org.pentaho.platform.api.engine.ICacheManager;
 import org.pentaho.platform.api.engine.IPentahoSession;
@@ -108,7 +109,7 @@ import java.util.Set;
  * <p>
  * 
  * @see org.hibernate.cache.CacheProvider
- * @see org.hibernate.cache.Cache
+ * @see org.hibernate.Cache
  * 
  * @author mbatchel
  * 
@@ -117,7 +118,7 @@ public class CacheManager implements ICacheManager {
 
   protected static final Log logger = LogFactory.getLog( CacheManager.class );
   // ~ Instance Fields ======================================================
-  private CacheProvider cacheProvider;
+  //private CacheProvider cacheProvider;
 
   private Map<String, Cache> regionCache;
 
@@ -197,8 +198,8 @@ public class CacheManager implements ICacheManager {
 
   public void cacheStop() {
     if ( cacheEnabled ) {
-      regionCache.clear();
-      cacheProvider.stop();
+//      regionCache.clear();
+//      cacheProvider.stop();
     }
   }
 
@@ -207,9 +208,9 @@ public class CacheManager implements ICacheManager {
    * 
    * @return cacheProvider.
    */
-  protected CacheProvider getCacheProvider() {
-    return cacheProvider;
-  }
+//  protected CacheProvider getCacheProvider() {
+//    return cacheProvider;
+//  }
 
   /**
    * Populates the properties object from the pentaho.xml
@@ -250,7 +251,7 @@ public class CacheManager implements ICacheManager {
     boolean returnValue = false;
     if ( cacheEnabled ) {
       if ( !cacheEnabled( region ) ) {
-        Cache cache = buildCache( region, cacheProperties );
+        Cache cache = (Cache) buildCache( region, cacheProperties );
         if ( cache == null ) {
           CacheManager.logger
               .error( Messages.getInstance().getString( "CacheManager.ERROR_0005_UNABLE_TO_BUILD_CACHE" ) ); //$NON-NLS-1$
@@ -272,7 +273,7 @@ public class CacheManager implements ICacheManager {
     boolean returnValue = false;
     if ( cacheEnabled ) {
       if ( !cacheEnabled( region ) ) {
-        Cache cache = buildCache( region, null );
+        Cache cache = (Cache) buildCache( region, null );
         if ( cache == null ) {
           CacheManager.logger
               .error( Messages.getInstance().getString( "CacheManager.ERROR_0005_UNABLE_TO_BUILD_CACHE" ) ); //$NON-NLS-1$
@@ -311,7 +312,8 @@ public class CacheManager implements ICacheManager {
       Cache cache = regionCache.get( region );
       if ( cache != null ) {
         try {
-          cache.clear();
+          //cache.clear();
+          cache.evictAll();
         } catch ( CacheException e ) {
           CacheManager.logger.error( Messages.getInstance().getString(
             "CacheManager.ERROR_0006_CACHE_EXCEPTION", e.getLocalizedMessage() ) ); //$NON-NLS-1$
@@ -341,8 +343,8 @@ public class CacheManager implements ICacheManager {
   public void putInRegionCache( String region, Object key, Object value ) {
     if ( cacheEnabled ) {
       if ( cacheEnabled( region ) ) {
-        Cache cache = regionCache.get( region );
-        cache.put( key, value );
+//        Cache cache = regionCache.get( region );
+//        cache.put( key, value );
       } else {
         CacheManager.logger.warn( Messages.getInstance().getString(
             "CacheManager.WARN_0003_REGION_DOES_NOT_EXIST", region ) ); //$NON-NLS-1$
@@ -357,7 +359,8 @@ public class CacheManager implements ICacheManager {
     if ( cacheEnabled ) {
       Cache cache = regionCache.get( region );
       if ( cacheEnabled( region ) ) {
-        returnValue = cache.get( key );
+        //returnValue = cache.get( key );
+
       } else {
         CacheManager.logger.warn( Messages.getInstance().getString(
             "CacheManager.WARN_0003_REGION_DOES_NOT_EXIST", region ) ); //$NON-NLS-1$
@@ -372,16 +375,16 @@ public class CacheManager implements ICacheManager {
   public List getAllValuesFromRegionCache( String region ) {
     List list = new ArrayList<Object>();
     if ( cacheEnabled ) {
-      Cache cache = regionCache.get( region );
+      //Cache cache = regionCache.get( region );
       if ( cacheEnabled( region ) ) {
-        Map cacheMap = cache.toMap();
-        if ( cacheMap != null ) {
-          Iterator it = cacheMap.entrySet().iterator();
-          while ( it.hasNext() ) {
-            Map.Entry entry = (Map.Entry) it.next();
-            list.add( entry.getValue() );
-          }
-        }
+        //Map cacheMap = cache.toMap();
+//        if ( cacheMap != null ) {
+//          Iterator it = cacheMap.entrySet().iterator();
+//          while ( it.hasNext() ) {
+//            Map.Entry entry = (Map.Entry) it.next();
+//            list.add( entry.getValue() );
+//          }
+//        }
       }
     } else {
       CacheManager.logger.warn( Messages.getInstance().getString( "CacheManager.WARN_0001_CACHE_NOT_ENABLED" ) ); //$NON-NLS-1$
@@ -394,10 +397,10 @@ public class CacheManager implements ICacheManager {
     if ( cacheEnabled ) {
       Cache cache = regionCache.get( region );
       if ( cacheEnabled( region ) ) {
-        Map cacheMap = cache.toMap();
-        if ( cacheMap != null ) {
-          set = cacheMap.keySet();
-        }
+        //Map cacheMap = cache.toMap();
+//        if ( cacheMap != null ) {
+//          set = cacheMap.keySet();
+//        }
       }
     } else {
       CacheManager.logger.warn( Messages.getInstance().getString( "CacheManager.WARN_0001_CACHE_NOT_ENABLED" ) ); //$NON-NLS-1$
@@ -410,10 +413,10 @@ public class CacheManager implements ICacheManager {
     if ( cacheEnabled ) {
       Cache cache = regionCache.get( region );
       if ( cacheEnabled( region ) ) {
-        Map cacheMap = cache.toMap();
-        if ( cacheMap != null ) {
-          set = cacheMap.entrySet();
-        }
+//        Map cacheMap = cache.toMap();
+//        if ( cacheMap != null ) {
+//          set = cacheMap.entrySet();
+//        }
       }
     } else {
       CacheManager.logger.warn( Messages.getInstance().getString( "CacheManager.WARN_0001_CACHE_NOT_ENABLED" ) ); //$NON-NLS-1$
@@ -425,7 +428,7 @@ public class CacheManager implements ICacheManager {
     if ( cacheEnabled ) {
       Cache cache = regionCache.get( region );
       if ( cacheEnabled( region ) ) {
-        cache.remove( key );
+        //cache.remove( key );
       } else {
         CacheManager.logger.warn( Messages.getInstance().getString(
             "CacheManager.WARN_0003_REGION_DOES_NOT_EXIST", region ) ); //$NON-NLS-1$
@@ -447,7 +450,8 @@ public class CacheManager implements ICacheManager {
         String key = ( entry.getKey() != null ) ? entry.getKey().toString() : ""; //$NON-NLS-1$
         if ( key != null ) {
           Cache cache = regionCache.get( key );
-          cache.clear();
+          //cache.clear();
+          cache.evictAll();
         }
       }
     }
@@ -465,17 +469,17 @@ public class CacheManager implements ICacheManager {
     if ( cacheEnabled ) {
       Cache cache = regionCache.get( SESSION );
       if ( cache != null ) {
-        Map cacheMap = cache.toMap();
-        if ( cacheMap != null ) {
-          Set set = cacheMap.keySet();
-          Iterator it = set.iterator();
-          while ( it.hasNext() ) {
-            String key = (String) it.next();
-            if ( key.indexOf( session.getId() ) >= 0 ) {
-              cache.remove( key );
-            }
-          }
-        }
+//        Map cacheMap = cache.toMap();
+//        if ( cacheMap != null ) {
+//          Set set = cacheMap.keySet();
+//          Iterator it = set.iterator();
+//          while ( it.hasNext() ) {
+//            String key = (String) it.next();
+//            if ( key.indexOf( session.getId() ) >= 0 ) {
+//              cache.remove( key );
+//            }
+//          }
+//        }
       }
     }
   }
@@ -511,19 +515,22 @@ public class CacheManager implements ICacheManager {
   }
 
   private LastModifiedCache buildCache( String key, Properties cacheProperties ) {
-    if ( getCacheProvider() != null ) {
-      Cache cache = getCacheProvider().buildCache( key, cacheProperties );
-      LastModifiedCache lmCache = new LastModifiedCache( cache );
-      if ( cacheExpirationRegistry != null ) {
-        cacheExpirationRegistry.register( lmCache );
-      } else {
-        logger.warn( Messages.getInstance().getErrorString( "CacheManager.WARN_0003_NO_CACHE_EXPIRATION_REGISTRY" ) );
-      }
-      return lmCache;
-    } else {
-      logger.error( Messages.getInstance().getErrorString( "CacheManager.ERROR_0004_CACHE_PROVIDER_NOT_AVAILABLE" ) );
-      return null;
-    }
+//    if ( getCacheProvider() != null ) {
+//      Cache cache = getCacheProvider().buildCache( key, cacheProperties );
+//      LastModifiedCache lmCache = new LastModifiedCache( cache );
+//      if ( cacheExpirationRegistry != null ) {
+//        //cacheExpirationRegistry.register( lmCache );
+//      } else {
+//        logger.warn( Messages.getInstance().getErrorString( "CacheManager.WARN_0003_NO_CACHE_EXPIRATION_REGISTRY" ) );
+//      }
+//      //return lmCache;
+//      return null;
+//    } else {
+//      logger.error( Messages.getInstance().getErrorString( "CacheManager.ERROR_0004_CACHE_PROVIDER_NOT_AVAILABLE" ) );
+//      return null;
+//    }
+    //Delete me
+    return null;
   }
 
   @Override
@@ -532,9 +539,10 @@ public class CacheManager implements ICacheManager {
       Cache cache = regionCache.get( region );
       if ( cache != null ) {
         try {
-          long memCnt = cache.getElementCountInMemory();
-          long discCnt = cache.getElementCountOnDisk();
-          return memCnt + discCnt;
+//          long memCnt = cache.getElementCountInMemory();
+//          long discCnt = cache.getElementCountOnDisk();
+//          return memCnt + discCnt;
+          return 0;
         } catch ( Exception ignored ) {
           return -1;
         }

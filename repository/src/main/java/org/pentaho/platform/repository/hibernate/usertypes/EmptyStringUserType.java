@@ -24,6 +24,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hibernate.Hibernate;
 import org.hibernate.HibernateException;
+import org.hibernate.engine.spi.SharedSessionContractImplementor;
+import org.hibernate.type.StandardBasicTypes;
 import org.hibernate.usertype.UserType;
 //EqualsHelper removed after hibernate-core-5.3.1.Final.jar
 //import org.hibernate.util.EqualsHelper;
@@ -74,7 +76,8 @@ public class EmptyStringUserType implements UserType {
   public boolean equals( final Object arg0, final Object arg1 ) throws HibernateException {
     // EqualsHelper removed after hibernate-core-5.3.1.Final.jar
     // maybe just return equals( arg0, arg1 );
-    return EqualsHelper.equals( arg0, arg1 );
+    //return EqualsHelper.equals( arg0, arg1 );
+    return equals(  arg0, arg1  );
   }
 
   /*
@@ -84,6 +87,18 @@ public class EmptyStringUserType implements UserType {
    */
   public int hashCode( final Object arg0 ) throws HibernateException {
     return arg0.hashCode();
+  }
+
+  @Override
+  public Object nullSafeGet( ResultSet rs, String[] names, SharedSessionContractImplementor session, Object owner )
+    throws HibernateException, SQLException {
+    return null;
+  }
+
+  @Override
+  public void nullSafeSet( PreparedStatement st, Object value, int index, SharedSessionContractImplementor session )
+    throws HibernateException, SQLException {
+
   }
 
   /*
@@ -100,7 +115,7 @@ public class EmptyStringUserType implements UserType {
     //maybe replace Hibernate.STRING.nullSafeGet
     //with:
     //StandardBasicTypes.STRING.nullSafeGet
-    String colValue = (String) Hibernate.STRING.nullSafeGet( arg0, arg1[0] );
+    String colValue = (String) StandardBasicTypes.STRING.nullSafeGet( arg0, arg1[0] , null);
     // _PENTAHOEMPTY_ shouldn't appear in the wild. So, check the string in
     // the DB for this flag,
     // and if it's there, then this must be an empty string.
@@ -122,7 +137,7 @@ public class EmptyStringUserType implements UserType {
     //maybe replace Hibernate.STRING.nullSafeSet
     // with:
     //StandardBasicTypes.STRING.nullSafeSet(
-    Hibernate.STRING.nullSafeSet( arg0, ( arg1 != null ) ? ( ( ( (String) arg1 ).length() > 0 ) ? arg1
+    StandardBasicTypes.STRING.nullSafeSet( arg0, ( arg1 != null ) ? ( ( ( (String) arg1 ).length() > 0 ) ? arg1
         : EmptyStringUserType.PENTAHOEMPTY ) : arg1, arg2, null );
   }
 

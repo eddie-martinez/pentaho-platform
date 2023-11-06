@@ -56,6 +56,9 @@ import java.util.List;
 import java.util.Properties;
 import java.util.StringTokenizer;
 
+import static org.hibernate.resource.transaction.spi.TransactionStatus.COMMITTED;
+import static org.hibernate.resource.transaction.spi.TransactionStatus.ROLLED_BACK;
+
 public class HibernateUtil implements IPentahoSystemEntryPoint, IPentahoSystemExitPoint {
 
   private static final Log log = LogFactory.getLog( HibernateUtil.class );
@@ -131,8 +134,8 @@ public class HibernateUtil implements IPentahoSystemEntryPoint, IPentahoSystemEx
     try {
       //Configuration (org.hibernate.cfg) class removed setEntityResolver() and setListener()
       HibernateUtil.configuration = new Configuration();
-      HibernateUtil.configuration.setEntityResolver( new PentahoEntityResolver() );
-      HibernateUtil.configuration.setListener( "load", new HibernateLoadEventListener() ); //$NON-NLS-1$
+//      HibernateUtil.configuration.setEntityResolver( new PentahoEntityResolver() );
+//      HibernateUtil.configuration.setListener( "load", new HibernateLoadEventListener() ); //$NON-NLS-1$
 
       if ( hibernateConfigurationFile != null ) {
         String configPath = applicationContext.getSolutionPath( hibernateConfigurationFile );
@@ -373,7 +376,8 @@ public class HibernateUtil implements IPentahoSystemEntryPoint, IPentahoSystemEx
           }
           //There is no constructor in SessionFactory accepting any arguments
           //SessionFactory class removed openSession constructor passing (HibernateUtil.getInterceptor())
-          s = HibernateUtil.getSessionFactory().openSession( HibernateUtil.getInterceptor() );
+          //s = HibernateUtil.getSessionFactory().openSession( HibernateUtil.getInterceptor() );
+          s = HibernateUtil.getSessionFactory().openSession();
         } else {
           s = HibernateUtil.getSessionFactory().openSession();
         }
@@ -447,7 +451,8 @@ public class HibernateUtil implements IPentahoSystemEntryPoint, IPentahoSystemEx
     try {
       //Transaction class removed wasCommitted() and wasRolledBack(), possibly we can use getStatus().isOneOf( COMMITTED )
       // and getStatus().isOneOf( ROLLED_BACK)
-      if ( ( tx != null ) && !tx.wasCommitted() && !tx.wasRolledBack() ) {
+      //if ( ( tx != null ) && !tx.wasCommitted() && !tx.wasRolledBack() ) {
+      if ( ( tx != null ) && !tx.getStatus().isOneOf( COMMITTED ) && !tx.getStatus().isOneOf( ROLLED_BACK) ) {
         if ( HibernateUtil.debug ) {
           HibernateUtil.log.debug( Messages.getInstance().getString( "HIBUTIL.DEBUG_COMMIT_TRANS" ) ); //$NON-NLS-1$
         }
@@ -482,7 +487,8 @@ public class HibernateUtil implements IPentahoSystemEntryPoint, IPentahoSystemEx
       HibernateUtil.threadTransaction.set( null );
       //Transaction class removed wasCommitted() and wasRolledBack(), possibly we can use getStatus().isOneOf( COMMITTED )
       // and getStatus().isOneOf( ROLLED_BACK)
-      if ( ( tx != null ) && !tx.wasCommitted() && !tx.wasRolledBack() ) {
+      //if ( ( tx != null ) && !tx.wasCommitted() && !tx.wasRolledBack() ) {
+      if ( ( tx != null ) && !tx.getStatus().isOneOf( COMMITTED ) && !tx.getStatus().isOneOf( ROLLED_BACK) ) {
         if ( HibernateUtil.debug ) {
           HibernateUtil.log.debug( Messages.getInstance().getString( "HIBUTIL.DEBUG_ROLLBACK" ) ); //$NON-NLS-1$
         }
