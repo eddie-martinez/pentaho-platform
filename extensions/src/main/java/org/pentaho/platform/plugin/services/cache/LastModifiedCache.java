@@ -25,26 +25,32 @@ package org.pentaho.platform.plugin.services.cache;
 import org.hibernate.Cache;
 import org.hibernate.SessionFactory;
 import org.hibernate.cache.CacheException;
+import org.hibernate.cache.spi.DirectAccessRegion;
 import org.pentaho.platform.api.cache.ILastModifiedCacheItem;
 
 import java.io.Serializable;
 import java.util.Date;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * User: rfellows Date: 10/25/11 Time: 3:53 PM
  */
-public class LastModifiedCache implements ILastModifiedCacheItem, Cache {
-  private Cache cache;
+public class LastModifiedCache implements ILastModifiedCacheItem, HvCache {
+  //private Cache cache;
+  private DirectAccessRegion cache;
+  private SessionFactory sessionFactory;
   private long lastModified;
 
-  public LastModifiedCache( Cache cache ) {
+  public LastModifiedCache( DirectAccessRegion cache, SessionFactory sessionFactory ) {
     this.cache = cache;
+    this.sessionFactory = sessionFactory;
     setLastModified();
   }
 
-  public LastModifiedCache( Cache cache, long lastModified ) {
+  public LastModifiedCache( DirectAccessRegion cache, SessionFactory sessionFactory, long lastModified ) {
     this.cache = cache;
+    this.sessionFactory = sessionFactory;
     this.lastModified = lastModified;
   }
 
@@ -160,7 +166,7 @@ public class LastModifiedCache implements ILastModifiedCacheItem, Cache {
 //  }
 
   @Override public SessionFactory getSessionFactory() {
-    return null;
+    return sessionFactory;
   }
 
   @Override public boolean containsEntity( Class entityClass, Serializable identifier ) {
@@ -172,35 +178,35 @@ public class LastModifiedCache implements ILastModifiedCacheItem, Cache {
   }
 
   @Override public void evictEntityData( Class entityClass, Serializable identifier ) {
-
+    int x = 0;
   }
 
   @Override public void evictEntityData( String entityName, Serializable identifier ) {
-
+    int x = 0;
   }
 
   @Override public void evictEntityData( Class entityClass ) {
-
+    int x = 0;
   }
 
   @Override public void evictEntityData( String entityName ) {
-
+    int x = 0;
   }
 
   @Override public void evictEntityData() {
-
+    int x = 0;
   }
 
   @Override public void evictNaturalIdData( Class entityClass ) {
-
+    int x = 0;
   }
 
   @Override public void evictNaturalIdData( String entityName ) {
-
+    int x = 0;
   }
 
   @Override public void evictNaturalIdData() {
-
+    int x = 0;
   }
 
   @Override public boolean containsCollection( String role, Serializable ownerIdentifier ) {
@@ -208,15 +214,15 @@ public class LastModifiedCache implements ILastModifiedCacheItem, Cache {
   }
 
   @Override public void evictCollectionData( String role, Serializable ownerIdentifier ) {
-
+    int x = 0;
   }
 
   @Override public void evictCollectionData( String role ) {
-
+    int x = 0;
   }
 
   @Override public void evictCollectionData() {
-
+    int x = 0;
   }
 
   @Override public boolean containsQuery( String regionName ) {
@@ -224,19 +230,19 @@ public class LastModifiedCache implements ILastModifiedCacheItem, Cache {
   }
 
   @Override public void evictDefaultQueryRegion() {
-
+    int x = 0;
   }
 
   @Override public void evictQueryRegion( String regionName ) {
-
+    int x = 0;
   }
 
   @Override public void evictQueryRegions() {
-
+    int x = 0;
   }
 
   @Override public void evictRegion( String regionName ) {
-
+    int x = 0;
   }
 
   @Override public boolean contains( Class aClass, Object o ) {
@@ -244,14 +250,18 @@ public class LastModifiedCache implements ILastModifiedCacheItem, Cache {
   }
 
   @Override public void evict( Class aClass, Object o ) {
-
+    int x = 0;
   }
 
   @Override public void evict( Class aClass ) {
-
+    int x = 0;
   }
 
   @Override public <T> T unwrap( Class<T> aClass ) {
+    return null;
+  }
+
+  @Override public Set getAllKeysFromRegionCache( String region ) {
     return null;
   }
 }

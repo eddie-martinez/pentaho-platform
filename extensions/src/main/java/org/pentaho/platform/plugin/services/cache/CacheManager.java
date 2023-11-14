@@ -26,15 +26,27 @@ import org.dom4j.Element;
 //removed in the change from Hibernate 3 to Hibernate 4
 //import org.hibernate.cache.Cache;
 import org.hibernate.Cache;
+import org.hibernate.SessionFactory;
+import org.hibernate.boot.internal.SessionFactoryOptionsBuilder;
+import org.hibernate.boot.registry.StandardServiceRegistry;
+import org.hibernate.boot.spi.BootstrapContext;
+import org.hibernate.boot.spi.SessionFactoryOptions;
 import org.hibernate.cache.CacheException;
 //removed in the change from Hibernate 3 to Hibernate 4
 //import org.hibernate.cache.CacheProvider;
+import org.hibernate.cache.spi.DirectAccessRegion;
+import org.hibernate.cache.spi.RegionFactory;
+import org.hibernate.cache.spi.TimestampsRegion;
+import org.hibernate.cache.spi.support.RegionFactoryTemplate;
+import org.hibernate.cfg.Configuration;
+import org.hibernate.engine.spi.SessionFactoryImplementor;
 import org.pentaho.platform.api.cache.ICacheExpirationRegistry;
 import org.pentaho.platform.api.engine.ICacheManager;
 import org.pentaho.platform.api.engine.IPentahoSession;
 import org.pentaho.platform.api.engine.ISystemSettings;
 import org.pentaho.platform.engine.core.system.PentahoSystem;
 import org.pentaho.platform.engine.services.messages.Messages;
+import org.pentaho.platform.repository.hibernate.HibernateUtil;
 import org.pentaho.platform.util.xml.dom4j.XmlDom4JHelper;
 
 import java.util.ArrayList;
@@ -108,7 +120,7 @@ import java.util.Set;
  * 
  * <p>
  * 
- * @see org.hibernate.cache.CacheProvider
+ * //@see org.hibernate.cache.CacheProvider
  * @see org.hibernate.Cache
  * 
  * @author mbatchel
@@ -119,6 +131,7 @@ public class CacheManager implements ICacheManager {
   protected static final Log logger = LogFactory.getLog( CacheManager.class );
   // ~ Instance Fields ======================================================
   //private CacheProvider cacheProvider;
+  private RegionFactory regionFactory;
 
   private Map<String, Cache> regionCache;
 
@@ -171,18 +184,21 @@ public class CacheManager implements ICacheManager {
     cacheExpirationRegistry = PentahoSystem.get( ICacheExpirationRegistry.class, null );
 
     if ( null != obj ) {
-      if ( obj instanceof CacheProvider ) {
-        this.cacheProvider = (CacheProvider) obj;
-        cacheProvider.start( cacheProperties );
+      if ( obj instanceof RegionFactory ) {
+        this.regionFactory = (RegionFactory) obj;  //cacheProvider changed to regionFactory
+        //Configuration config = new Configuration();
+        //SessionFactoryOptions sessionFactoryOptions = new SessionFactoryOptionsBuilder( StandardServiceRegistry
+        //  serviceRegistry, BootstrapContext context).buildOptions();
+        regionFactory.start( HibernateUtil.getSessionFactory().getSessionFactoryOptions(), cacheProperties );
         regionCache = new HashMap<String, Cache>();
-        Cache cache = buildCache( SESSION, cacheProperties );
+        Cache cache = buildCache( SESSION, HibernateUtil.getSessionFactory(), cacheProperties );
         if ( cache == null ) {
           CacheManager.logger
               .error( Messages.getInstance().getString( "CacheManager.ERROR_0005_UNABLE_TO_BUILD_CACHE" ) ); //$NON-NLS-1$
         } else {
           regionCache.put( SESSION, cache );
         }
-        cache = buildCache( GLOBAL, cacheProperties );
+        cache = buildCache( GLOBAL, HibernateUtil.getSessionFactory(), cacheProperties );
         if ( cache == null ) {
           CacheManager.logger
               .error( Messages.getInstance().getString( "CacheManager.ERROR_0005_UNABLE_TO_BUILD_CACHE" ) ); //$NON-NLS-1$
@@ -204,13 +220,13 @@ public class CacheManager implements ICacheManager {
   }
 
   /**
-   * Returns the underlying cache provider (implements <code>org.hibernate.cache.CacheProvider</code>
+   * Returns the underlying regionFactory (implements <code>org.hibernate.cache.spi.RegionFactory</code>)
    * 
-   * @return cacheProvider.
+   * @return regionFactory.
    */
-//  protected CacheProvider getCacheProvider() {
-//    return cacheProvider;
-//  }
+  protected RegionFactory getRegionFactory() {
+    return regionFactory;
+  }
 
   /**
    * Populates the properties object from the pentaho.xml
@@ -251,7 +267,7 @@ public class CacheManager implements ICacheManager {
     boolean returnValue = false;
     if ( cacheEnabled ) {
       if ( !cacheEnabled( region ) ) {
-        Cache cache = (Cache) buildCache( region, cacheProperties );
+        Cache cache = (Cache) buildCache( region, HibernateUtil.getSessionFactory(), cacheProperties );
         if ( cache == null ) {
           CacheManager.logger
               .error( Messages.getInstance().getString( "CacheManager.ERROR_0005_UNABLE_TO_BUILD_CACHE" ) ); //$NON-NLS-1$
@@ -273,7 +289,7 @@ public class CacheManager implements ICacheManager {
     boolean returnValue = false;
     if ( cacheEnabled ) {
       if ( !cacheEnabled( region ) ) {
-        Cache cache = (Cache) buildCache( region, null );
+        Cache cache = (Cache) buildCache( region, HibernateUtil.getSessionFactory(), null );
         if ( cache == null ) {
           CacheManager.logger
               .error( Messages.getInstance().getString( "CacheManager.ERROR_0005_UNABLE_TO_BUILD_CACHE" ) ); //$NON-NLS-1$
@@ -376,8 +392,9 @@ public class CacheManager implements ICacheManager {
     List list = new ArrayList<Object>();
     if ( cacheEnabled ) {
       //Cache cache = regionCache.get( region );
+      Cache cache = regionCache.get( region );
       if ( cacheEnabled( region ) ) {
-        //Map cacheMap = cache.toMap();
+//        Map cacheMap = cache.toMap();
 //        if ( cacheMap != null ) {
 //          Iterator it = cacheMap.entrySet().iterator();
 //          while ( it.hasNext() ) {
@@ -397,7 +414,7 @@ public class CacheManager implements ICacheManager {
     if ( cacheEnabled ) {
       Cache cache = regionCache.get( region );
       if ( cacheEnabled( region ) ) {
-        //Map cacheMap = cache.toMap();
+           //Map cacheMap = cache.toMap();
 //        if ( cacheMap != null ) {
 //          set = cacheMap.keySet();
 //        }
@@ -429,6 +446,7 @@ public class CacheManager implements ICacheManager {
       Cache cache = regionCache.get( region );
       if ( cacheEnabled( region ) ) {
         //cache.remove( key );
+        cache.evictEntityData( (String) key );
       } else {
         CacheManager.logger.warn( Messages.getInstance().getString(
             "CacheManager.WARN_0003_REGION_DOES_NOT_EXIST", region ) ); //$NON-NLS-1$
@@ -514,23 +532,21 @@ public class CacheManager implements ICacheManager {
     }
   }
 
-  private LastModifiedCache buildCache( String key, Properties cacheProperties ) {
-//    if ( getCacheProvider() != null ) {
-//      Cache cache = getCacheProvider().buildCache( key, cacheProperties );
-//      LastModifiedCache lmCache = new LastModifiedCache( cache );
-//      if ( cacheExpirationRegistry != null ) {
-//        //cacheExpirationRegistry.register( lmCache );
-//      } else {
-//        logger.warn( Messages.getInstance().getErrorString( "CacheManager.WARN_0003_NO_CACHE_EXPIRATION_REGISTRY" ) );
-//      }
-//      //return lmCache;
-//      return null;
-//    } else {
-//      logger.error( Messages.getInstance().getErrorString( "CacheManager.ERROR_0004_CACHE_PROVIDER_NOT_AVAILABLE" ) );
-//      return null;
-//    }
-    //Delete me
-    return null;
+  private LastModifiedCache buildCache( String key, SessionFactory sessionFactory, Properties cacheProperties ) {
+    if ( getRegionFactory() != null ) {
+      DirectAccessRegion timestampsRegion =
+        getRegionFactory().buildTimestampsRegion( key, (SessionFactoryImplementor) sessionFactory );
+      LastModifiedCache lmCache = new LastModifiedCache( timestampsRegion, sessionFactory );
+      if ( cacheExpirationRegistry != null ) {
+        cacheExpirationRegistry.register( lmCache );
+      } else {
+        logger.warn( Messages.getInstance().getErrorString( "CacheManager.WARN_0003_NO_CACHE_EXPIRATION_REGISTRY" ) );
+      }
+      return lmCache;
+    } else {
+      logger.error( Messages.getInstance().getErrorString( "CacheManager.ERROR_0004_CACHE_PROVIDER_NOT_AVAILABLE" ) );
+      return null;
+    }
   }
 
   @Override
