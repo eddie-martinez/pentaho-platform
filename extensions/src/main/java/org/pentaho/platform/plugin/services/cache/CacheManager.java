@@ -20,6 +20,7 @@
 
 package org.pentaho.platform.plugin.services.cache;
 
+import net.sf.ehcache.Ehcache;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.dom4j.Element;
@@ -28,18 +29,15 @@ import org.dom4j.Element;
 import org.hibernate.Cache;
 import org.hibernate.SessionFactory;
 import org.hibernate.boot.internal.SessionFactoryOptionsBuilder;
-import org.hibernate.boot.registry.StandardServiceRegistry;
-import org.hibernate.boot.spi.BootstrapContext;
 import org.hibernate.boot.spi.SessionFactoryOptions;
 import org.hibernate.cache.CacheException;
 //removed in the change from Hibernate 3 to Hibernate 4
 //import org.hibernate.cache.CacheProvider;
+import org.hibernate.cache.ehcache.internal.SingletonEhcacheRegionFactory;
 import org.hibernate.cache.spi.DirectAccessRegion;
 import org.hibernate.cache.spi.RegionFactory;
-import org.hibernate.cache.spi.TimestampsRegion;
-import org.hibernate.cache.spi.support.RegionFactoryTemplate;
-import org.hibernate.cfg.Configuration;
 import org.hibernate.engine.spi.SessionFactoryImplementor;
+import org.hibernate.internal.SessionImpl;
 import org.pentaho.platform.api.cache.ICacheExpirationRegistry;
 import org.pentaho.platform.api.engine.ICacheManager;
 import org.pentaho.platform.api.engine.IPentahoSession;
@@ -51,6 +49,7 @@ import org.pentaho.platform.util.xml.dom4j.XmlDom4JHelper;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -186,9 +185,6 @@ public class CacheManager implements ICacheManager {
     if ( null != obj ) {
       if ( obj instanceof RegionFactory ) {
         this.regionFactory = (RegionFactory) obj;  //cacheProvider changed to regionFactory
-        //Configuration config = new Configuration();
-        //SessionFactoryOptions sessionFactoryOptions = new SessionFactoryOptionsBuilder( StandardServiceRegistry
-        //  serviceRegistry, BootstrapContext context).buildOptions();
         regionFactory.start( HibernateUtil.getSessionFactory().getSessionFactoryOptions(), cacheProperties );
         regionCache = new HashMap<String, Cache>();
         Cache cache = buildCache( SESSION, HibernateUtil.getSessionFactory(), cacheProperties );
@@ -214,8 +210,8 @@ public class CacheManager implements ICacheManager {
 
   public void cacheStop() {
     if ( cacheEnabled ) {
-//      regionCache.clear();
-//      cacheProvider.stop();
+      regionCache.clear();
+      //cacheProvider.stop();
     }
   }
 
@@ -357,72 +353,64 @@ public class CacheManager implements ICacheManager {
   }
 
   public void putInRegionCache( String region, Object key, Object value ) {
-    if ( cacheEnabled ) {
-      if ( cacheEnabled( region ) ) {
-//        Cache cache = regionCache.get( region );
-//        cache.put( key, value );
-      } else {
-        CacheManager.logger.warn( Messages.getInstance().getString(
-            "CacheManager.WARN_0003_REGION_DOES_NOT_EXIST", region ) ); //$NON-NLS-1$
+    if ( checkRegionEnabled( region ) ) {
+      HvCache hvcache = (HvCache) regionCache.get( region );  //This is our LastModifiedCache or CarteStatusCache
+      //        cache.put( key, value );
+      try ( SessionImpl session = (SessionImpl) hvcache.getSessionFactory().openSession() ) {
+        hvcache.getDirectAccessRegion().putIntoCache( key, value, session );
       }
-    } else {
-      CacheManager.logger.warn( Messages.getInstance().getString( "CacheManager.WARN_0001_CACHE_NOT_ENABLED" ) ); //$NON-NLS-1$
     }
   }
 
   public Object getFromRegionCache( String region, Object key ) {
     Object returnValue = null;
-    if ( cacheEnabled ) {
-      Cache cache = regionCache.get( region );
-      if ( cacheEnabled( region ) ) {
-        //returnValue = cache.get( key );
+    if ( checkRegionEnabled( region ) ) {
+      //returnValue = cache.get( key );
+      HvCache hvcache = (HvCache) regionCache.get( region );  //This is our LastModifiedCache or CarteStatusCache
+      try ( SessionImpl session = (SessionImpl) hvcache.getSessionFactory().openSession() ) {
 
-      } else {
-        CacheManager.logger.warn( Messages.getInstance().getString(
-            "CacheManager.WARN_0003_REGION_DOES_NOT_EXIST", region ) ); //$NON-NLS-1$
+        return ( (HvCache) hvcache ).getDirectAccessRegion().getFromCache( key, session );
       }
-    } else {
-      CacheManager.logger.warn( Messages.getInstance().getString( "CacheManager.WARN_0001_CACHE_NOT_ENABLED" ) ); //$NON-NLS-1$
     }
-
     return returnValue;
   }
 
   public List getAllValuesFromRegionCache( String region ) {
     List list = new ArrayList<Object>();
-    if ( cacheEnabled ) {
-      //Cache cache = regionCache.get( region );
-      Cache cache = regionCache.get( region );
-      if ( cacheEnabled( region ) ) {
-//        Map cacheMap = cache.toMap();
-//        if ( cacheMap != null ) {
-//          Iterator it = cacheMap.entrySet().iterator();
-//          while ( it.hasNext() ) {
-//            Map.Entry entry = (Map.Entry) it.next();
-//            list.add( entry.getValue() );
-//          }
-//        }
+    if ( checkRegionEnabled( region ) ) {
+      //        Map cacheMap = cache.toMap();
+      //        if ( cacheMap != null ) {
+      //          Iterator it = cacheMap.entrySet().iterator();
+      //          while ( it.hasNext() ) {
+      //            Map.Entry entry = (Map.Entry) it.next();
+      //            list.add( entry.getValue() );
+      //          }
+      //        }
+      HvCache hvcache = (HvCache) regionCache.get( region );  //This is our LastModifiedCache or CarteStatusCache
+      try ( SessionImpl session = (SessionImpl) hvcache.getSessionFactory().openSession() ) {
+        Ehcache ehcache = hvcache.getStorageAccess().getCache();
+        Map cacheMap = ehcache.getAll( ehcache.getKeys() );
+        if ( cacheMap != null ) {
+          Iterator it = cacheMap.entrySet().iterator();
+          while ( it.hasNext() ) {
+            Map.Entry entry = (Map.Entry) it.next();
+            list.add( entry.getValue() );
+          }
+        }
       }
-    } else {
-      CacheManager.logger.warn( Messages.getInstance().getString( "CacheManager.WARN_0001_CACHE_NOT_ENABLED" ) ); //$NON-NLS-1$
     }
     return list;
   }
-
+//checked
   public Set getAllKeysFromRegionCache( String region ) {
-    Set set = null;
-    if ( cacheEnabled ) {
-      Cache cache = regionCache.get( region );
-      if ( cacheEnabled( region ) ) {
-           //Map cacheMap = cache.toMap();
-//        if ( cacheMap != null ) {
-//          set = cacheMap.keySet();
-//        }
+    if ( checkRegionEnabled( region ) ) {
+      HvCache hvcache = (HvCache) regionCache.get( region );  //This is our LastModifiedCache or CarteStatusCache
+      try ( SessionImpl session = (SessionImpl) hvcache.getSessionFactory().openSession() ) {
+        Ehcache ehcache = hvcache.getStorageAccess().getCache();
+        return new HashSet( ehcache.getKeys() );
       }
-    } else {
-      CacheManager.logger.warn( Messages.getInstance().getString( "CacheManager.WARN_0001_CACHE_NOT_ENABLED" ) ); //$NON-NLS-1$
     }
-    return set;
+    return null;
   }
 
   public Set getAllEntriesFromRegionCache( String region ) {
@@ -534,7 +522,8 @@ public class CacheManager implements ICacheManager {
 
   private LastModifiedCache buildCache( String key, SessionFactory sessionFactory, Properties cacheProperties ) {
     if ( getRegionFactory() != null ) {
-      DirectAccessRegion timestampsRegion =
+      //DirectAccessRegion timestampsRegion =
+      HvTimestampsRegion timestampsRegion = (HvTimestampsRegion )
         getRegionFactory().buildTimestampsRegion( key, (SessionFactoryImplementor) sessionFactory );
       LastModifiedCache lmCache = new LastModifiedCache( timestampsRegion, sessionFactory );
       if ( cacheExpirationRegistry != null ) {
@@ -578,5 +567,20 @@ public class CacheManager implements ICacheManager {
   @Override
   public long getElementCountInGlobalCache() {
     return getElementCountInRegionCache( GLOBAL );
+  }
+
+  private boolean checkRegionEnabled( String region ) {
+    if ( cacheEnabled ) {
+      if ( cacheEnabled( region ) ) {
+        return true;
+      } else {
+        CacheManager.logger.warn( Messages.getInstance().getString(
+          "CacheManager.WARN_0003_REGION_DOES_NOT_EXIST", region ) );
+      }
+    } else {
+      CacheManager.logger.warn(
+        Messages.getInstance().getString( "CacheManager.WARN_0001_CACHE_NOT_ENABLED" ) ); //$NON-NLS-1$
+    }
+    return false;
   }
 }
