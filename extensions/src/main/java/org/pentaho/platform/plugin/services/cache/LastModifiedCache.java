@@ -22,15 +22,22 @@ package org.pentaho.platform.plugin.services.cache;
 
 //removed in the change from Hibernate 3 to Hibernate 4
 //possibly use net.sf.ehcache.config.CacheConfiguration.PoolUsage.Cache
-import org.hibernate.Cache;
+import net.sf.ehcache.Ehcache;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.hibernate.SessionFactory;
-import org.hibernate.cache.CacheException;
+import org.hibernate.UnknownEntityTypeException;
+import org.hibernate.cache.ehcache.internal.StorageAccessImpl;
 import org.hibernate.cache.spi.DirectAccessRegion;
+import org.hibernate.cache.spi.access.EntityDataAccess;
+import org.hibernate.cache.spi.support.StorageAccess;
+import org.hibernate.metamodel.model.domain.NavigableRole;
+import org.hibernate.metamodel.spi.MetamodelImplementor;
+import org.hibernate.persister.entity.EntityPersister;
 import org.pentaho.platform.api.cache.ILastModifiedCacheItem;
 
 import java.io.Serializable;
 import java.util.Date;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -41,6 +48,8 @@ public class LastModifiedCache implements ILastModifiedCacheItem, HvCache {
   private DirectAccessRegion cache;
   private SessionFactory sessionFactory;
   private long lastModified;
+  protected static final Log LOGGER = LogFactory.getLog( LastModifiedCache.class );
+  //private static final CoreMessageLogger LOG = CoreLogging.messageLogger( LastModifiedCache.class );
 
   public LastModifiedCache( DirectAccessRegion cache, SessionFactory sessionFactory ) {
     this.cache = cache;
@@ -190,7 +199,14 @@ public class LastModifiedCache implements ILastModifiedCacheItem, HvCache {
   }
 
   @Override public void evictEntityData( String entityName ) {
-    int x = 0;
+    //
+    //Object o = (MetamodelImplementor ) getSessionFactory().getMetamodel();
+    try {
+      evictEntityData(
+        ( (MetamodelImplementor) getSessionFactory().getMetamodel() ).locateEntityPersister( entityName ) );
+    } catch ( UnknownEntityTypeException e) {
+      //Nothing to do if the entry is not there.
+    }
   }
 
   @Override public void evictEntityData() {
@@ -263,5 +279,41 @@ public class LastModifiedCache implements ILastModifiedCacheItem, HvCache {
 
   @Override public Set getAllKeysFromRegionCache( String region ) {
     return null;
+  }
+
+  @Override public DirectAccessRegion getDirectAccessRegion() {
+    return cache;
+  }
+
+  private void evictEntityData( EntityPersister entityDescriptor ) {
+    EntityPersister rootEntityDescriptor = entityDescriptor;
+    if ( entityDescriptor.isInherited()
+      && !entityDescriptor.getEntityName().equals( entityDescriptor.getRootEntityName() ) ) {
+      rootEntityDescriptor = ( (MetamodelImplementor) getSessionFactory().getMetamodel() ).locateEntityPersister(
+        entityDescriptor.getRootEntityName() );
+    }
+
+    evictEntityData( rootEntityDescriptor.getNavigableRole(), rootEntityDescriptor.getCacheAccessStrategy() );
+
+  }
+
+  private void evictEntityData( NavigableRole navigableRole, EntityDataAccess cacheAccess) {
+    if ( cacheAccess == null ) {
+      return;
+    }
+
+    if ( LOGGER.isDebugEnabled() ) {
+      LOGGER.debug( String.format( "Evicting entity cache: %s", navigableRole.getFullPath() ) );
+    }
+
+    cacheAccess.evictAll();
+  }
+
+  @Override public StorageAccessImpl getStorageAccess(){
+    return ( (HvTimestampsRegion) cache ).getStorageAccess();
+  }
+
+  @Override public Ehcache getCache() {
+    return getStorageAccess().getCache();
   }
 }
