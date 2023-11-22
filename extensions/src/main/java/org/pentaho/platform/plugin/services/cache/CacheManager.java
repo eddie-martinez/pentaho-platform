@@ -14,7 +14,7 @@
  * See the GNU Lesser General Public License for more details.
  *
  *
- * Copyright (c) 2002-2018 Hitachi Vantara. All rights reserved.
+ * Copyright (c) 2002-2023 Hitachi Vantara. All rights reserved.
  *
  */
 
@@ -24,17 +24,9 @@ import net.sf.ehcache.Ehcache;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.dom4j.Element;
-//removed in the change from Hibernate 3 to Hibernate 4
-//import org.hibernate.cache.Cache;
 import org.hibernate.Cache;
 import org.hibernate.SessionFactory;
-import org.hibernate.boot.internal.SessionFactoryOptionsBuilder;
-import org.hibernate.boot.spi.SessionFactoryOptions;
 import org.hibernate.cache.CacheException;
-//removed in the change from Hibernate 3 to Hibernate 4
-//import org.hibernate.cache.CacheProvider;
-import org.hibernate.cache.ehcache.internal.SingletonEhcacheRegionFactory;
-import org.hibernate.cache.spi.DirectAccessRegion;
 import org.hibernate.cache.spi.RegionFactory;
 import org.hibernate.engine.spi.SessionFactoryImplementor;
 import org.hibernate.internal.SessionImpl;
@@ -55,17 +47,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * This class provides an access point for pluggable caching mechanisms. Right now, it only supports the caching
- * mechanisms implemented in <code>org.hibernate.cache</code>.
+ * mechanisms implemented in <code>org.hibernate.cache</code> for Timestamp Regions.
  * <p>
  * To use the cache manager, you need to include the following information in your <code>pentaho.xml</code>.
  * 
  * <pre>
  * 
  *  &lt;cache-provider&gt;
- *    &lt;class&gt;org.hibernate.cache.xxxxxxxx&lt;/class&gt;
+ *    &lt;class&gt;org.pentaho.platform.plugin.services.cache.HvCacheRegionFactory&lt;/class&gt;
  *    &lt;region&gt;pentahoCache&lt;/region&gt;
  *    &lt;properties&gt;
  *      &lt;property name=&quot;someProperty&quot;&gt;someValue&lt;/property&gt;
@@ -74,12 +67,13 @@ import java.util.Set;
  * </pre>
  * 
  * <p>
- * The specified class must implement the <code>org.hibernate.cache.CacheProvider</code> interface.
+ * The specified class must extend <code>org.hibernate.cache.spi.AbstractRegionFactory</code> and/or implement
+ * <code>org.hibernate.cache.spi.RegionFactory</code>.
  * <p>
- * Each implementation of the <code>org.hibernate.cache.CacheProvider</code> has slightly different requirements with
- * respect to the required input parameters - so, please see the classes in that package for more information (available
- * from the Sourceforge Hibernate project). Also, some cache providers (notably the
- * <code>org.hibernate.cache.EhCacheProvider</code>) completely ignore the passed in properties, and only configure
+ * Each implementation of the <code>org.hibernate.cache.spi.RegionFactory</code> has slightly
+ * different requirements with respect to the required input parameters - so, please see the classes in that package
+ * for more information (available from the Sourceforge Hibernate project). Also, some region factories (notably the
+ * <code>org.hibernate.cache.EhCacheRegionFactory</code>) completely ignore the passed in properties, and only configure
  * themselves by locating a configuration file (e.g. ehcache.xml) on the classpath.
  * 
  * <p>
@@ -129,12 +123,11 @@ public class CacheManager implements ICacheManager {
 
   protected static final Log logger = LogFactory.getLog( CacheManager.class );
   // ~ Instance Fields ======================================================
-  //private CacheProvider cacheProvider;
   private RegionFactory regionFactory;
 
   private Map<String, Cache> regionCache;
 
-  private String cacheProviderClassName;
+  private String regionFactoryClassname;
 
   private boolean cacheEnabled;
 
@@ -167,10 +160,10 @@ public class CacheManager implements ICacheManager {
       System.setProperty( "java.io.tmpdir", s + "/" ); //$NON-NLS-1$//$NON-NLS-2$
     }
     if ( settings != null ) {
-      cacheProviderClassName = settings.getSystemSetting( "cache-provider/class", null ); //$NON-NLS-1$
-      if ( cacheProviderClassName != null ) {
+      regionFactoryClassname = settings.getSystemSetting( "cache-provider/class", null ); //$NON-NLS-1$
+      if ( regionFactoryClassname != null ) {
         Properties cacheProperties = getCacheProperties( settings );
-        setupCacheProvider( cacheProperties );
+        setupRegionProvider( cacheProperties );
         this.cacheEnabled = true;
       }
     }
@@ -178,13 +171,13 @@ public class CacheManager implements ICacheManager {
     PentahoSystem.addLogoutListener( this );
   }
 
-  protected void setupCacheProvider( Properties cacheProperties ) {
-    Object obj = PentahoSystem.createObject( cacheProviderClassName );
+  protected void setupRegionProvider( Properties cacheProperties ) {
+    Object obj = PentahoSystem.createObject( regionFactoryClassname );  //Should be an HvCacheRegionFactory
     cacheExpirationRegistry = PentahoSystem.get( ICacheExpirationRegistry.class, null );
 
     if ( null != obj ) {
       if ( obj instanceof RegionFactory ) {
-        this.regionFactory = (RegionFactory) obj;  //cacheProvider changed to regionFactory
+        this.regionFactory = (RegionFactory) obj;  //cacheProvider changed to regionFactory for hibernate 5.3
         regionFactory.start( HibernateUtil.getSessionFactory().getSessionFactoryOptions(), cacheProperties );
         regionCache = new HashMap<String, Cache>();
         Cache cache = buildCache( SESSION, HibernateUtil.getSessionFactory(), cacheProperties );
@@ -211,12 +204,12 @@ public class CacheManager implements ICacheManager {
   public void cacheStop() {
     if ( cacheEnabled ) {
       regionCache.clear();
-      //cacheProvider.stop();
+      regionFactory.stop();
     }
   }
 
   /**
-   * Returns the underlying regionFactory (implements <code>org.hibernate.cache.spi.RegionFactory</code>)
+   * Returns the underlying regionFactory (implements <code>org.hibernate.cache.RegionFactory</code>)
    * 
    * @return regionFactory.
    */
@@ -378,14 +371,6 @@ public class CacheManager implements ICacheManager {
   public List getAllValuesFromRegionCache( String region ) {
     List list = new ArrayList<Object>();
     if ( checkRegionEnabled( region ) ) {
-      //        Map cacheMap = cache.toMap();
-      //        if ( cacheMap != null ) {
-      //          Iterator it = cacheMap.entrySet().iterator();
-      //          while ( it.hasNext() ) {
-      //            Map.Entry entry = (Map.Entry) it.next();
-      //            list.add( entry.getValue() );
-      //          }
-      //        }
       HvCache hvcache = (HvCache) regionCache.get( region );  //This is our LastModifiedCache or CarteStatusCache
       try ( SessionImpl session = (SessionImpl) hvcache.getSessionFactory().openSession() ) {
         Ehcache ehcache = hvcache.getStorageAccess().getCache();
@@ -406,41 +391,30 @@ public class CacheManager implements ICacheManager {
     if ( checkRegionEnabled( region ) ) {
       HvCache hvcache = (HvCache) regionCache.get( region );  //This is our LastModifiedCache or CarteStatusCache
       try ( SessionImpl session = (SessionImpl) hvcache.getSessionFactory().openSession() ) {
+        return hvcache.getAllKeys();
+      }
+    }
+    return null;
+  }
+  //checked in debug
+  public Set getAllEntriesFromRegionCache( String region ) {
+    if ( checkRegionEnabled( region ) ) {
+      HvCache hvcache = (HvCache) regionCache.get( region );  //This is our LastModifiedCache or CarteStatusCache
+      try ( SessionImpl session = (SessionImpl) hvcache.getSessionFactory().openSession() ) {
         Ehcache ehcache = hvcache.getStorageAccess().getCache();
-        return new HashSet( ehcache.getKeys() );
+        return ehcache.getAll( ehcache.getKeys() ).values().stream().collect( Collectors.toSet() );
       }
     }
     return null;
   }
 
-  public Set getAllEntriesFromRegionCache( String region ) {
-    Set set = null;
-    if ( cacheEnabled ) {
-      Cache cache = regionCache.get( region );
-      if ( cacheEnabled( region ) ) {
-//        Map cacheMap = cache.toMap();
-//        if ( cacheMap != null ) {
-//          set = cacheMap.entrySet();
-//        }
-      }
-    } else {
-      CacheManager.logger.warn( Messages.getInstance().getString( "CacheManager.WARN_0001_CACHE_NOT_ENABLED" ) ); //$NON-NLS-1$
-    }
-    return set;
-  }
-
   public void removeFromRegionCache( String region, Object key ) {
-    if ( cacheEnabled ) {
-      Cache cache = regionCache.get( region );
-      if ( cacheEnabled( region ) ) {
-        //cache.remove( key );
-        cache.evictEntityData( (String) key );
-      } else {
-        CacheManager.logger.warn( Messages.getInstance().getString(
-            "CacheManager.WARN_0003_REGION_DOES_NOT_EXIST", region ) ); //$NON-NLS-1$
-      }
+    if ( checkRegionEnabled( region ) ) {
+      HvCache hvcache = (HvCache) regionCache.get( region );
+      hvcache.evictEntityData( (String) key );
     } else {
-      CacheManager.logger.warn( Messages.getInstance().getString( "CacheManager.WARN_0001_CACHE_NOT_ENABLED" ) ); //$NON-NLS-1$
+      CacheManager.logger.warn( Messages.getInstance().getString(
+        "CacheManager.WARN_0003_REGION_DOES_NOT_EXIST", region ) ); //$NON-NLS-1$
     }
   }
 
@@ -473,19 +447,19 @@ public class CacheManager implements ICacheManager {
 
   public void killSessionCache( IPentahoSession session ) {
     if ( cacheEnabled ) {
-      Cache cache = regionCache.get( SESSION );
-      if ( cache != null ) {
-//        Map cacheMap = cache.toMap();
-//        if ( cacheMap != null ) {
-//          Set set = cacheMap.keySet();
-//          Iterator it = set.iterator();
-//          while ( it.hasNext() ) {
-//            String key = (String) it.next();
-//            if ( key.indexOf( session.getId() ) >= 0 ) {
-//              cache.remove( key );
-//            }
-//          }
-//        }
+      HvCache hvcache = (HvCache) regionCache.get( SESSION );
+      if ( hvcache != null ) {
+        Ehcache ehcache = hvcache.getStorageAccess().getCache();
+        Map cacheMap = ehcache.getAll( ehcache.getKeys() );
+        if ( cacheMap != null ) {
+          Iterator it = cacheMap.keySet().iterator();
+          while ( it.hasNext() ) {
+            String key = (String) it.next();
+            if ( key.indexOf( session.getId() ) >= 0 ) {
+              hvcache.evictEntityData( key );
+            }
+          }
+        }
       }
     }
   }
@@ -540,14 +514,14 @@ public class CacheManager implements ICacheManager {
 
   @Override
   public long getElementCountInRegionCache( String region ) {
-    if ( cacheEnabled ) {
-      Cache cache = regionCache.get( region );
-      if ( cache != null ) {
+    if ( checkRegionEnabled( region ) ) {
+      HvCache hvcache = (HvCache) regionCache.get( region );
+      Ehcache ehcache = hvcache.getStorageAccess().getCache();
+      if ( hvcache != null ) {
         try {
-//          long memCnt = cache.getElementCountInMemory();
-//          long discCnt = cache.getElementCountOnDisk();
-//          return memCnt + discCnt;
-          return 0;
+          long memCnt = ehcache.getStatistics().getMemoryStoreObjectCount();
+          long discCnt = ehcache.getStatistics().getDiskStoreObjectCount();
+          return memCnt + discCnt;
         } catch ( Exception ignored ) {
           return -1;
         }
